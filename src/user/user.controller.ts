@@ -1,25 +1,55 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { UserService } from './user.service'; // 1. Import Service
-
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+import { UserService } from './user.service';
+import { User } from './user.entity';
+import { CreateUserDto } from './dto/create-user.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
+@ApiTags('Người dùng') // Gom nhóm API
+@ApiBearerAuth() // Đánh dấu Controller này yêu cầu Token JWT
 @Controller('user')
 export class UserController {
-  // 2. Inject Service thông qua Constructor
   constructor(private readonly userService: UserService) {}
 
-  @Get()
-  findAll() {
-    // 3. Gọi hàm từ Service thay vì trả về text "vô tri"
-    return this.userService.findAll();
+  @Post()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.userService.create(createUserDto);
   }
 
-  @Post()
-  create(@Body() body: { username: string; email: string }) {
-    return this.userService.create(body);
+  @UseGuards(JwtAuthGuard) // Chỉ những ai có Token hợp lệ mới được vào đây
+  @Get()
+  @ApiOperation({ summary: 'Lấy danh sách tất cả người dùng' })
+  @ApiResponse({ status: 200, description: 'Lấy dữ liệu thành công.' })
+  @ApiResponse({ status: 401, description: 'Chưa xác thực.' })
+  findAll() {
+    return this.userService.findAll();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    // Lưu ý: ID từ Param luôn là string, cần convert sang number
-    return this.userService.findOne(Number(id));
+    return this.userService.findOne(+id); // Dấu + để chuyển string sang number
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateData: Partial<User>) {
+    return this.userService.update(+id, updateData);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.userService.remove(+id);
   }
 }
